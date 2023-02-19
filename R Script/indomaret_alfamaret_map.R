@@ -3,16 +3,16 @@ library(ggmap)
 library(ggplot2)
 library(RColorBrewer)
 
-map_key <- "XXXXXXXX"
+map_key <- "XXXXXXXXXXXXXXXXXXXXx"
 register_google(key = map_key)
 
 # read data
 tangsel = read_excel("Alfamart and Indomart/South Tangerang MT.xlsx",sheet = "Data")
 
 # select longitude and latitude
-d <- tangsel %>% dplyr::select("cid","location/lat","location/lng")
+d <- tangsel %>% dplyr::select("cid","location/lat","location/lng","searchString")
 d = data.frame(d)
-colnames(d) = c("ID","lat","lon")
+colnames(d) = c("ID","lat","lon","minimarket_brand")
 
 # create circles data frame from the centers data frame
 make_circles <- function(centers, radius, nPoints = 100){
@@ -52,8 +52,9 @@ m <- ggmap(ts_map)
 m <- m + stat_density2d(data=d, aes(x=lon, y=lat,fill=after_stat(level), alpha=after_stat(level)),
                   geom = "polygon")
 m <- m + scale_fill_gradientn(colours=rev(brewer.pal(7, "Spectral")))
-m <- m + geom_point(data=d, aes(x=lon, y=lat),
-                    color="red", alpha=0.5)
+m <- m + geom_point(data=d, aes(x=lon, y=lat,color=minimarket_brand),
+                    # color="red", 
+                    alpha=0.5)
 m
 
 ggsave(m,filename = "heatmap location minimarket.png")
