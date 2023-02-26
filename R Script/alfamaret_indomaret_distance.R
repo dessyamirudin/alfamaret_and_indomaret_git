@@ -5,9 +5,11 @@ library(geosphere)
 library(scales)
 library(gtable)
 library(ggrepel)
+library(ggmap)
+library(RColorBrewer)
 
 # read data
-tangsel = read_excel("Alfamart and Indomart/South Tangerang MT.xlsx",sheet = "Data")
+tangsel = read_excel("South Tangerang MT.xlsx",sheet = "Data")
 
 # proportion alfamaret and indomaret
 data.frame(table(tangsel$searchString))
@@ -234,10 +236,68 @@ indo_gtable   <- arrangeGrob(indo_gtable, bottom = source_text)
 
 ggsave("Indomaret Distance to Indomaret.jpg", indo_gtable, width = 20, height = 12, units = "cm")
 
-# bar chart for 100 m
-# bar chart for 10 m 
-# use 538 style or economist style
+# ----------------- plotting Alfamaret and Indomaret location Red Ocean --------------------
+map_key <- "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx"
+register_google(key = map_key)
 
+# alfa and indomaret
+select_alfa_indo = min_dist_alfa_indo %>% filter (distance <=150)
+
+select_alfa_indo_alfa = select_alfa_indo %>% select (ID_alfa, lat_alfa, lon_alfa, alfa_brand)
+colnames(select_alfa_indo_alfa) = c("ID","lat","lon","brand")
+select_alfa_indo_alfa = unique(select_alfa_indo_alfa)
+
+select_alfa_indo_indo = select_alfa_indo %>% data.frame() %>% select (ID_indo, lat_indo, lon_indo, indo_brand)
+colnames(select_alfa_indo_indo) = c("ID","lat","lon","brand")
+select_alfa_indo_indo = unique(select_alfa_indo_indo)
+
+alfa_indo_map = rbind(select_alfa_indo_alfa, select_alfa_indo_indo)
+
+# load South Tangerang Map
+ts_map <- get_map("South Tangerang", zoom=12)
+
+# create heatmap from location
+m_alfa <- ggmap(ts_map)
+m_alfa <- m_alfa + stat_density2d(data=alfa_indo_map, aes(x=lon, y=lat,fill=after_stat(level), alpha=after_stat(level)),
+                        geom = "polygon")
+m_alfa <- m_alfa + scale_fill_gradientn(colours=rev(brewer.pal(7, "Spectral")))
+m_alfa <- m_alfa + geom_point(data=alfa_indo_map, aes(x=lon, y=lat,color=brand),
+                    # color="red", 
+                    alpha=0.5) +
+          ggtitle("Red Ocean Alfamart and Indomaret")+
+          theme(
+            plot.title = element_text(vjust = +2, size = 15)
+          )
+          
+          
+m_alfa
+
+ggsave(m_alfa,filename = "heatmap alfa and indo.png")
+
+# indomaret and indomaret
+
+select_indo_indo = min_dist_indo_indo %>% filter (distance <=150)
+
+select_indo_indo = select_indo_indo %>% select (ID_indo_x, lat_indo_x, lon_indo_x, indo_brand_x)
+colnames(select_indo_indo) = c("ID","lat","lon","brand")
+select_indo_indo = unique(select_indo_indo)
+
+# create heatmap from location
+m_indo <- ggmap(ts_map)
+m_indo <- m_indo + stat_density2d(data=select_indo_indo, aes(x=lon, y=lat,fill=after_stat(level), alpha=after_stat(level)),
+                                  geom = "polygon")
+m_indo <- m_indo + scale_fill_gradientn(colours=rev(brewer.pal(7, "Spectral")))
+m_indo <- m_indo + geom_point(data=select_indo_indo, aes(x=lon, y=lat,color=brand),
+                              # color="red", 
+                              alpha=0.5) +
+  ggtitle("Red Ocean Indomaret vs Indomaret")+
+  theme(
+    plot.title = element_text(vjust = +2, size = 15)
+  )
+
+m_indo
+
+ggsave(m_indo,filename = "heatmap indo and indo.png")
 
 # source
 # https://www.programmingr.com/tutorial/cross-join-in-r/
